@@ -1,4 +1,6 @@
-# Setup
+# Treasury Core
+
+## Setup
 
 1. Java SDK
 
@@ -19,3 +21,8 @@ Install: https://maven.apache.org/install.html
 We are using Maven 3.2.2
 
 Now try executing `mvn -v`. If everything is in place, it should display the version of your Maven.
+
+## Dependencies
+
+1. bitcoinj 0.14.7
+2. slf4j-simple 1.7.25
