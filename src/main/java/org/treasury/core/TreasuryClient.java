@@ -24,7 +24,7 @@ public class TreasuryClient {
         this.treasuryId = treasuryId;
     }
 
-    public Treasury getTreasury() throws Exception {
+    public Treasury getTreasury() throws IOException, ClientError {
         String url = baseUrl + "treasury/" + treasuryId;
         String response = getRequest(url);
         Gson gson = new GsonBuilder().registerTypeAdapter(Date.class, new GsonUTCDateAdapter()).create();
@@ -32,20 +32,20 @@ public class TreasuryClient {
         return treasury;
     }
 
-    public int postTransaction(TransactionHistory history) throws Exception {
+    public int postTransaction(TransactionHistory history) throws IOException, ClientError {
         String url = baseUrl + "treasury/" + treasuryId;
         Gson gson = new GsonBuilder().registerTypeAdapter(Date.class, new GsonUTCDateAdapter()).create();
         String payload = gson.toJson(history);
         return postRequest(url, payload);
     }
 
-    public int postAddress(String address) throws Exception {
+    public int postAddress(String address) throws IOException, ClientError {
         String url = baseUrl + "treasury/" + treasuryId + "/addr";
         String payload = "{\"address\":\"" + address + "\"}";
         return postRequest(url, payload);
     }
 
-    private String getRequest(String url) throws Exception {
+    private String getRequest(String url) throws ClientError, IOException {
         URL obj = new URL(url);
         HttpURLConnection con = (HttpURLConnection) obj.openConnection();
 
@@ -54,7 +54,7 @@ public class TreasuryClient {
 
         int responseCode = con.getResponseCode();
         if (responseCode != 200) {
-            throw new Exception("Treasury not found");
+            throw new ClientError("Treasury not found");
         }
 
         BufferedReader in = new BufferedReader(
@@ -70,23 +70,22 @@ public class TreasuryClient {
         return response.toString();
     }
 
-    private int postRequest(String requestUrl, String payload) throws Exception {
-        try {
-            URL url = new URL(requestUrl);
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+    private int postRequest(String requestUrl, String payload) throws IOException, ClientError {
+        URL url = new URL(requestUrl);
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 
-            connection.setDoInput(true);
-            connection.setDoOutput(true);
-            connection.setRequestMethod("POST");
-            connection.setRequestProperty("Accept", "application/json");
-            connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
-            OutputStreamWriter writer = new OutputStreamWriter(connection.getOutputStream(), "UTF-8");
-            writer.write(payload);
-            writer.close();
-            int responseCode = connection.getResponseCode();
-            return responseCode;
-        } catch (Exception e) {
-            throw new RuntimeException(e.getMessage());
+        connection.setDoInput(true);
+        connection.setDoOutput(true);
+        connection.setRequestMethod("POST");
+        connection.setRequestProperty("Accept", "application/json");
+        connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+        OutputStreamWriter writer = new OutputStreamWriter(connection.getOutputStream(), "UTF-8");
+        writer.write(payload);
+        writer.close();
+        int responseCode = connection.getResponseCode();
+        if (responseCode != 200) {
+            throw new ClientError("Posting failed");
         }
+        return responseCode;
     }
 }

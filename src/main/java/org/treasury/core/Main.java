@@ -7,6 +7,7 @@ import org.bitcoinj.wallet.Wallet;
 import org.treasury.core.pojo.TransactionHistory;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.*;
 
 public class Main {
@@ -24,16 +25,16 @@ public class Main {
         kit.awaitRunning();
     }
 
-    public void initiateTreasury(String treasuryId) throws Exception {
+    public void initiateTreasury(String treasuryId) {
         if (kit == null) {
-            throw new Exception("Initialize WalletAppKit first");
+            throw new InitiationSequenceException();
         }
         controls = new Controls(treasuryId, kit.wallet());
     }
 
-    public void syncTreasury() throws Exception {
+    public void syncTreasury() throws IOException, ClientError {
         if (controls == null) {
-            throw new Exception("Initialize Controls first");
+            throw new InitiationSequenceException();
         }
         controls.syncTreasury();
     }
@@ -56,7 +57,7 @@ public class Main {
         }
     }
 
-    public void getFreshAddress() throws Exception {
+    public void getFreshAddress() throws IOException, ClientError {
         Address newAddress = kit.wallet().freshReceiveAddress();
         controls.postAddress(newAddress.toString());
         kit.wallet().addWatchedAddress(newAddress);
@@ -66,7 +67,7 @@ public class Main {
         return kit.wallet().getBalance();
     }
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) throws IOException, ClientError {
         Main t = new Main();
         String treasuryId = "21ce720d-cc65-4de0-885b-ba2ad0664900";
         String faucetAddr = "2N8hwP1WmJrFF5QWABn38y63uYLhnJYJYTF";
