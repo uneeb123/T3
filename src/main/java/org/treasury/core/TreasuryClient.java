@@ -2,6 +2,8 @@ package org.treasury.core;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import org.treasury.core.pojo.TransactionHistory;
+import org.treasury.core.pojo.Treasury;
 
 import java.io.*;
 import java.net.HttpURLConnection;
@@ -13,13 +15,16 @@ public class TreasuryClient {
     private String baseUrl;
     private String treasuryId;
 
-    public TreasuryClient(boolean testMode, String treasuryId) {
+    public TreasuryClient(boolean testMode, String treasuryId) throws Exception {
         if (testMode) {
             baseUrl = "http://localhost:3000/";
         } else {
             baseUrl = "http://treasury.com/"; // replace this
         }
         this.treasuryId = treasuryId;
+        if (this.treasuryId == null) {
+            throw new Exception("Unable to create client");
+        }
     }
 
     public Treasury getTreasury() throws Exception {
