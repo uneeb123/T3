@@ -4,6 +4,7 @@ import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.wallet.Wallet;
+import org.joda.time.DateTime;
 import org.treasury.core.pojo.TransactionHistory;
 import org.treasury.core.pojo.TransactionHistoryByDate;
 import org.treasury.core.pojo.Treasury;
@@ -25,13 +26,28 @@ public class Controls {
         this(treasuryId, wallet, true);
     }
 
+    public void postTransaction(TransactionHistory history) throws Exception {
+        int responseCode = client.postTransaction(history);
+        if (responseCode != 200) {
+            throw new Exception("Posting transaction failed");
+        }
+    }
+
+    public void postAddress(String address) throws Exception {
+        int responseCode = client.postAddress(address);
+        if (responseCode != 200) {
+            throw new Exception("Posting address failed");
+        }
+    }
+
     public boolean complyWithAccessControls(Coin amount) throws Exception {
         Treasury treasury = client.getTreasury();
         long limit = treasury.spending_limit;
-        TransactionHistory last = lastOutgoingTransaction(Arrays.asList(treasury.history));
+        Date s = startingTime(outgoingTransactions(Arrays.asList(treasury.history)));
         if (amount.value > limit) {
-            return false;
+            throw new AmountExceedsLimitException(limit);
         }
+        TransactionHistory last = lastOutgoingTransaction(Arrays.asList(treasury.history));
         Date previous = last.created_on;
         Date today = new Date();
         long difference =  (today.getTime()/1000) - (previous.getTime()/1000);
@@ -66,6 +82,42 @@ public class Controls {
     }
 
     private TransactionHistory lastOutgoingTransaction(List<TransactionHistory> all) {
+        List<TransactionHistory> onlyOutgoing = outgoingTransactions(all);
+        return onlyOutgoing.get(onlyOutgoing.size() - 1);
+    }
+
+    private Date startingTime(List<TransactionHistory> outgoing) {
+        TransactionHistory first = outgoing.get(0);
+
+        DateTime dt = new DateTime(first.created_on.getTime());
+        int firstHour = dt.hourOfDay().get();
+        int firstMin = dt.minuteOfHour().get();
+        int firstSec = dt.secondOfMinute().get();
+        int firstTime = firstSec + (firstMin*60) + (firstHour*60*60);
+
+        DateTime now = new DateTime();
+        int nowYear = now.year().get();
+        int nowMonth = now.monthOfYear().get();
+        int nowDay = now.dayOfMonth().get();
+        int nowHour = now.hourOfDay().get();
+        int nowMin = now.minuteOfHour().get();
+        int nowSec = now.secondOfMinute().get();
+        int nowTime = nowSec + (nowMin*60) + (nowHour*60*60);
+
+        // current time for the day exceeds first timestamp time of the day
+        // calendar indexes months from 0
+        if (firstTime < nowTime) {
+            Calendar c = new GregorianCalendar(
+                    nowYear, nowMonth-1, nowDay, firstHour, firstMin, firstSec);
+            return c.getTime();
+        } else {
+            Calendar c = new GregorianCalendar(
+                    nowYear, nowMonth-1, nowDay-1, firstHour, firstMin, firstSec);
+            return c.getTime();
+        }
+    }
+
+    private List<TransactionHistory> outgoingTransactions(List<TransactionHistory> all) {
         List<TransactionHistory> onlyOutgoing = new ArrayList<TransactionHistory>();
         Iterator<TransactionHistory> it = all.iterator();
         while (it.hasNext()) {
@@ -75,7 +127,7 @@ public class Controls {
             }
         }
         Collections.sort(onlyOutgoing, new TransactionHistoryByDate());
-        return onlyOutgoing.get(onlyOutgoing.size()-1);
+        return onlyOutgoing;
     }
 
     private List<TransactionHistory> convertToTreasuryTransaction(List<Transaction> txs) {

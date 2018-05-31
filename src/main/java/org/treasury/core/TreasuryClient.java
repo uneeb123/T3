@@ -15,16 +15,13 @@ public class TreasuryClient {
     private String baseUrl;
     private String treasuryId;
 
-    public TreasuryClient(boolean testMode, String treasuryId) throws Exception {
+    public TreasuryClient(boolean testMode, String treasuryId) {
         if (testMode) {
             baseUrl = "http://localhost:3000/";
         } else {
             baseUrl = "http://treasury.com/"; // replace this
         }
         this.treasuryId = treasuryId;
-        if (this.treasuryId == null) {
-            throw new Exception("Unable to create client");
-        }
     }
 
     public Treasury getTreasury() throws Exception {
