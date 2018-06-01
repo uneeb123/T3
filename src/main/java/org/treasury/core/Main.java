@@ -52,7 +52,9 @@ public class Main {
             Wallet.SendResult result = wallet.sendCoins(kit.peerGroup(), toAddr, value);
             String tx_id = result.tx.getHashAsString();
             Date today = new Date();
-            TransactionHistory newItem = new TransactionHistory(to, -value.value, today, tx_id);
+            TransactionHistory newItem = new TransactionHistory(
+                    to,-value.value, today, tx_id, result.tx.getFee().value
+            );
             controls.postTransaction(newItem);
             return result.tx;
         } catch (AmountExceedsLimitException e) {
@@ -67,20 +69,21 @@ public class Main {
         kit.wallet().addWatchedAddress(newAddress);
     }
 
-    public Coin getBalance() {
-        return kit.wallet().getBalance();
+    public void getBalance() throws IOException, ClientError {
+        Coin balance = kit.wallet().getBalance();
+        controls.postBalance(balance.value);
     }
 
     public static void main(String[] args) {
         Main t = new Main();
-        String treasuryId = "9778b13f-560d-4244-a334-4dfce58b08f9";
+        String treasuryId = "2679ae24-495f-4bab-93db-c8761bbc264a";
         String faucetAddr = "2N8hwP1WmJrFF5QWABn38y63uYLhnJYJYTF";
         t.initiateKit();
         t.initiateTreasury(treasuryId);
         try {
             t.syncTreasury();
             t.getFreshAddress();
-            System.out.println(t.getBalance().toFriendlyString());
+            t.getBalance();
             long amount = 9000;
             Coin value = Coin.valueOf(amount);
             try {

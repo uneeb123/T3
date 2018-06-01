@@ -39,6 +39,10 @@ public class Controls {
         client.postAddress(address);
     }
 
+    public void postBalance(long balance) throws IOException, ClientError {
+        client.postBalance(balance);
+    }
+
     public boolean complyWithAccessControls(Coin amount)
             throws AmountExceedsLimitException, IOException, ClientError {
         Treasury treasury = client.getTreasury();
@@ -143,6 +147,11 @@ public class Controls {
         Iterator<Transaction> it = txs.iterator();
         while (it.hasNext()) {
             Transaction tx = it.next();
+            Coin fee = tx.getFee();
+            long feeValue = 0;
+            if (fee != null) {
+                feeValue = fee.value;
+            }
             List<TransactionOutput> txOuts = tx.getOutputs();
             String tx_hash = tx.getHash().toString();
             Date updateTime = tx.getUpdateTime();
@@ -153,7 +162,7 @@ public class Controls {
                     Coin amount = out.getValue();
                     // to address is 0 if destination address is mine
                     TransactionHistory tTx = new TransactionHistory(
-                            "0", amount.value, updateTime, tx_hash);
+                                "0", amount.value, updateTime, tx_hash, feeValue);
                     tTxs.add(tTx);
                 }
             }

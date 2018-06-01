@@ -39,6 +39,12 @@ public class TreasuryClient {
         return postRequest(url, payload);
     }
 
+    public int postBalance(long balance) throws IOException, ClientError {
+        String url = baseUrl + "treasury/" + treasuryId + "/balance";
+        String payload = "{\"balance\":\"" + balance + "\"}";
+        return postRequest(url, payload);
+    }
+
     public int postAddress(String address) throws IOException, ClientError {
         String url = baseUrl + "treasury/" + treasuryId + "/addr";
         String payload = "{\"address\":\"" + address + "\"}";
