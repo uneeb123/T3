@@ -3,7 +3,6 @@ package org.treasury.core;
 import org.bitcoinj.core.*;
 import org.bitcoinj.kits.WalletAppKit;
 import org.bitcoinj.params.TestNet3Params;
-import org.bitcoinj.wallet.SendRequest;
 import org.bitcoinj.wallet.Wallet;
 import org.treasury.core.pojo.TransactionHistory;
 
@@ -41,12 +40,12 @@ public class Main {
     }
 
 
-    public boolean createTransaction(Coin value, String to)throws
+    public Transaction createTransaction(Coin value, String to)throws
             IOException, ClientError, InsufficientMoneyException, AmountExceedsLimitException {
         try {
             if (!controls.complyWithAccessControls(value)) {
                 // should throw an exception
-                return false;
+                return null;
             }
             Wallet wallet = kit.wallet();
             Address toAddr = Address.fromBase58(wallet.getParams(), to);
@@ -55,7 +54,7 @@ public class Main {
             Date today = new Date();
             TransactionHistory newItem = new TransactionHistory(to, -value.value, today, tx_id);
             controls.postTransaction(newItem);
-            return true;
+            return result.tx;
         } catch (AmountExceedsLimitException e) {
             System.out.println(e.getMessage());
             throw e;
