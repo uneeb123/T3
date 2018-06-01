@@ -4,7 +4,6 @@ import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.wallet.Wallet;
-import org.joda.time.DateTime;
 import org.treasury.core.pojo.TransactionHistory;
 import org.treasury.core.pojo.TransactionHistoryByDate;
 import org.treasury.core.pojo.Treasury;
@@ -16,11 +15,16 @@ public class Controls {
 
     private TreasuryClient client;
     private Wallet wallet;
-    private final long allowedDifference = 86400; // one day
+    private long allowedDifference; // in milliseconds
 
-    Controls(String treasuryId, Wallet wallet, boolean testMode) {
+    Controls(String treasuryId, Wallet wallet, boolean testMode, long allowedDifference) {
         this.wallet = wallet;
         this.client = new TreasuryClient(testMode, treasuryId);
+        this.allowedDifference = allowedDifference;
+    }
+
+    Controls(String treasuryId, Wallet wallet, boolean testMode) {
+        this(treasuryId, wallet, testMode, 86400000); // one day
     }
 
     Controls(String treasuryId, Wallet wallet) {
@@ -28,17 +32,11 @@ public class Controls {
     }
 
     public void postTransaction(TransactionHistory history) throws IOException, ClientError {
-        int responseCode = client.postTransaction(history);
-        if (responseCode != 200) {
-            throw new ClientError("Posting transaction failed");
-        }
+        client.postTransaction(history);
     }
 
     public void postAddress(String address) throws IOException, ClientError {
-        int responseCode = client.postAddress(address);
-        if (responseCode != 200) {
-            throw new ClientError("Posting address failed");
-        }
+        client.postAddress(address);
     }
 
     public boolean complyWithAccessControls(Coin amount)
@@ -47,17 +45,30 @@ public class Controls {
         long limit = treasury.spending_limit;
         List<TransactionHistory> sortedOutgoingTransaction =
                 outgoingTransactions(Arrays.asList(treasury.history));
-        Date threshold = startingTime(sortedOutgoingTransaction);
-        long nextTimeWindow = threshold.getTime() + allowedDifference;
-        Date nextWindow = new Date(nextTimeWindow);
-        long amountAccured = amountAccured(sortedOutgoingTransaction, threshold);
-        if ((amount.value + amountAccured) > limit) {
-            throw new AmountExceedsLimitException(limit - amountAccured, nextWindow);
+        if (sortedOutgoingTransaction.isEmpty()) {
+            // first transaction
+            if (amount.value > limit) {
+                throw new AmountExceedsLimitException(limit, null);
+            }
+            else {
+                return true;
+            }
+        } else {
+            Date threshold = startingTime(sortedOutgoingTransaction);
+            long nextTimeWindow = threshold.getTime() + allowedDifference;
+            Date nextWindow = new Date(nextTimeWindow);
+            long amountAccrued = amountAccrued(sortedOutgoingTransaction, threshold);
+            if ((amount.value + amountAccrued) > limit) {
+                throw new AmountExceedsLimitException(limit, nextWindow);
+            }
+            else {
+                return true;
+            }
         }
-        return true;
     }
 
     public void syncTreasury() throws IOException, ClientError {
+        // NOTE this will contain all transactions that are directed towards this wallet
         List<Transaction> allIncoming = incomingTransactions();
         List<TransactionHistory> blockchainHistory = convertToTreasuryTransaction(allIncoming);
         List<TransactionHistory> treasuryHistory = convertToHistoryList(client.getTreasury().history);
@@ -84,36 +95,21 @@ public class Controls {
     private Date startingTime(List<TransactionHistory> outgoing) {
         TransactionHistory first = outgoing.get(0);
 
-        DateTime dt = new DateTime(first.created_on.getTime());
-        int firstHour = dt.hourOfDay().get();
-        int firstMin = dt.minuteOfHour().get();
-        int firstSec = dt.secondOfMinute().get();
-        int firstTime = firstSec + (firstMin*60) + (firstHour*60*60);
+        long initialTime = first.created_on.getTime();
+        long currentTime = new Date().getTime();
 
-        DateTime now = new DateTime();
-        int nowYear = now.year().get();
-        int nowMonth = now.monthOfYear().get();
-        int nowDay = now.dayOfMonth().get();
-        int nowHour = now.hourOfDay().get();
-        int nowMin = now.minuteOfHour().get();
-        int nowSec = now.secondOfMinute().get();
-        int nowTime = nowSec + (nowMin*60) + (nowHour*60*60);
-
-        // current time for the day exceeds first timestamp time of the day
-        // calendar indexes months from 0
-        if (firstTime < nowTime) {
-            Calendar c = new GregorianCalendar(
-                    nowYear, nowMonth-1, nowDay, firstHour, firstMin, firstSec);
-            return c.getTime();
-        } else {
-            Calendar c = new GregorianCalendar(
-                    nowYear, nowMonth-1, nowDay-1, firstHour, firstMin, firstSec);
-            return c.getTime();
+        long startOfWindow = initialTime;
+        long endOfWindow = initialTime + allowedDifference;
+        while(endOfWindow <= currentTime) {
+            startOfWindow += allowedDifference;
+            endOfWindow += allowedDifference;
         }
+
+        return new Date(startOfWindow);
     }
 
-    private long amountAccured(List<TransactionHistory> sortedOutgoing, Date threshold) {
-        long accured = 0;
+    private long amountAccrued(List<TransactionHistory> sortedOutgoing, Date threshold) {
+        long accrued = 0;
         Iterator<TransactionHistory> it = sortedOutgoing.iterator();
         while (it.hasNext()) {
             TransactionHistory tx = it.next();
@@ -121,10 +117,11 @@ public class Controls {
             if (dateOfTx.before(threshold)) {
                 break;
             } else {
-                accured += tx.amount;
+                // outgoing are negative are negative
+                accrued += (-tx.amount);
             }
         }
-        return accured;
+        return accrued;
     }
 
     // filters and sorts the transaction list
@@ -138,7 +135,6 @@ public class Controls {
             }
         }
         Collections.sort(onlyOutgoing, new TransactionHistoryByDate());
-        Collections.reverse(onlyOutgoing);
         return onlyOutgoing;
     }
 
