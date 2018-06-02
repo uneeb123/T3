@@ -114,6 +114,7 @@ public class Controls {
 
     private long amountAccrued(List<TransactionHistory> sortedOutgoing, Date threshold) {
         long accrued = 0;
+        Collections.reverse(sortedOutgoing);
         Iterator<TransactionHistory> it = sortedOutgoing.iterator();
         while (it.hasNext()) {
             TransactionHistory tx = it.next();

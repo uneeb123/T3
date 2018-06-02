@@ -15,6 +15,11 @@ public class Main {
     private final String walletName = "walletappkit-example";
     private final File directory = new File(".");
 
+    public static final long MINUTE = 60000;
+    public static final long HOUR = MINUTE * 60;
+    public static final long DAY = HOUR * 24;
+    public static final long WEEK = DAY * 7;
+
     private WalletAppKit kit;
     private Controls controls;
 
@@ -25,11 +30,11 @@ public class Main {
         kit.awaitRunning();
     }
 
-    public void initiateTreasury(String treasuryId) {
+    public void initiateTreasury(String treasuryId, boolean testMode, long cadence) {
         if (kit == null) {
             throw new InitiationSequenceException();
         }
-        controls = new Controls(treasuryId, kit.wallet());
+        controls = new Controls(treasuryId, kit.wallet(), testMode, cadence);
     }
 
     public void syncTreasury() throws IOException, ClientError {
@@ -79,7 +84,7 @@ public class Main {
         String treasuryId = "2679ae24-495f-4bab-93db-c8761bbc264a";
         String faucetAddr = "2N8hwP1WmJrFF5QWABn38y63uYLhnJYJYTF";
         t.initiateKit();
-        t.initiateTreasury(treasuryId);
+        t.initiateTreasury(treasuryId, true, HOUR*10);
         try {
             t.syncTreasury();
             t.getFreshAddress();
