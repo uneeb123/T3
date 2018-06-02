@@ -3,25 +3,32 @@ package org.treasury.core;
 import org.bitcoinj.core.*;
 import org.bitcoinj.kits.WalletAppKit;
 import org.bitcoinj.params.TestNet3Params;
+import org.bitcoinj.wallet.DeterministicSeed;
 import org.bitcoinj.wallet.Wallet;
-import org.treasury.core.pojo.TransactionHistory;
+import org.treasury.core.exceptions.AmountExceedsLimitException;
+import org.treasury.core.exceptions.ClientError;
+import org.treasury.core.exceptions.InitiationSequenceException;
+import org.treasury.core.model.TransactionHistory;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
-public class Main {
-
+public class TreasuryInterface {
     private final String walletName = "walletappkit-example";
-    private final File directory = new File(".");
 
     public static final long MINUTE = 60000;
     public static final long HOUR = MINUTE * 60;
     public static final long DAY = HOUR * 24;
     public static final long WEEK = DAY * 7;
 
+    private File directory = new File(".");
+
     private WalletAppKit kit;
-    private Controls controls;
+    private Controller controller;
 
     public void initiateKit() {
         NetworkParameters params = TestNet3Params.get();
@@ -34,21 +41,21 @@ public class Main {
         if (kit == null) {
             throw new InitiationSequenceException();
         }
-        controls = new Controls(treasuryId, kit.wallet(), testMode, cadence);
+        controller = new Controller(treasuryId, kit.wallet(), testMode, cadence);
     }
 
     public void syncTreasury() throws IOException, ClientError {
-        if (controls == null) {
+        if (controller == null) {
             throw new InitiationSequenceException();
         }
-        controls.syncTreasury();
+        controller.syncTreasury();
     }
 
 
     public Transaction createTransaction(Coin value, String to)throws
             IOException, ClientError, InsufficientMoneyException, AmountExceedsLimitException {
         try {
-            if (!controls.complyWithAccessControls(value)) {
+            if (!controller.complyWithAccessControls(value)) {
                 // should throw an exception
                 return null;
             }
@@ -60,7 +67,7 @@ public class Main {
             TransactionHistory newItem = new TransactionHistory(
                     to,-value.value, today, tx_id, result.tx.getFee().value
             );
-            controls.postTransaction(newItem);
+            controller.postTransaction(newItem);
             return result.tx;
         } catch (AmountExceedsLimitException e) {
             System.out.println(e.getMessage());
@@ -70,38 +77,35 @@ public class Main {
 
     public void getFreshAddress() throws IOException, ClientError {
         Address newAddress = kit.wallet().freshReceiveAddress();
-        controls.postAddress(newAddress.toString());
+        controller.postAddress(newAddress.toString());
         kit.wallet().addWatchedAddress(newAddress);
     }
 
     public void getBalance() throws IOException, ClientError {
         Coin balance = kit.wallet().getBalance();
-        controls.postBalance(balance.value);
+        controller.postBalance(balance.value);
     }
 
-    public static void main(String[] args) {
-        Main t = new Main();
-        String treasuryId = "2679ae24-495f-4bab-93db-c8761bbc264a";
-        String faucetAddr = "2N8hwP1WmJrFF5QWABn38y63uYLhnJYJYTF";
-        t.initiateKit();
-        t.initiateTreasury(treasuryId, true, HOUR*10);
-        try {
-            t.syncTreasury();
-            t.getFreshAddress();
-            t.getBalance();
-            long amount = 9000;
-            Coin value = Coin.valueOf(amount);
-            try {
-                t.createTransaction(value, faucetAddr);
-            } catch (InsufficientMoneyException e) {
-                e.printStackTrace();
-            } catch (AmountExceedsLimitException e) {
-                e.printStackTrace();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (ClientError clientError) {
-            clientError.printStackTrace();
-        }
+    public File getDirectory() {
+        return directory;
+    }
+
+    public void setDirectory(File directory) {
+        this.directory = directory;
+    }
+
+    /**
+     * Not implemented at the moment, but high priority
+     */
+    public void getMnemonicCode() {
+        DeterministicSeed seed = kit.wallet().getKeyChainSeed();
+        seed.getCreationTimeSeconds();
+        seed.getMnemonicCode();
+    }
+
+    public void restoreWallet(List<String> mnemonicCode, long creationTime) {
+        String passphrase = "";
+        DeterministicSeed seed = new DeterministicSeed(mnemonicCode, null, passphrase, creationTime);
+        kit.restoreWalletFromSeed(seed);
     }
 }

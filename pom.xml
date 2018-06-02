@@ -27,7 +27,7 @@
                         <manifest>
                             <addClasspath>true</addClasspath>
                             <classpathPrefix>lib/</classpathPrefix>
-                            <mainClass>org.treasury.core.Main</mainClass>
+                            <mainClass>org.treasury.core.Example</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

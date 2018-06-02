@@ -1,4 +1,4 @@
-package org.treasury.core.pojo;
+package org.treasury.core.model;
 
 import java.util.Comparator;
 

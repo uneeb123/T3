@@ -1,6 +1,4 @@
-package org.treasury.core.pojo;
-
-import org.treasury.core.pojo.TransactionHistory;
+package org.treasury.core.model;
 
 public class Treasury {
     public String _id;

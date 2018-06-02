@@ -1,4 +1,4 @@
-package org.treasury.core;
+package org.treasury.core.exceptions;
 
 import java.util.Date;
 

@@ -1,7 +1,7 @@
-package org.treasury.core;
+package org.treasury.core.exceptions;
 
 public class InitiationSequenceException extends RuntimeException {
-    InitiationSequenceException() {
+    public InitiationSequenceException() {
         super("Initiating in wrong sequence");
     }
 }

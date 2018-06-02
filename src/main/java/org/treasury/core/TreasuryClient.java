@@ -2,8 +2,9 @@ package org.treasury.core;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import org.treasury.core.pojo.TransactionHistory;
-import org.treasury.core.pojo.Treasury;
+import org.treasury.core.exceptions.ClientError;
+import org.treasury.core.model.TransactionHistory;
+import org.treasury.core.model.Treasury;
 
 import java.io.*;
 import java.net.HttpURLConnection;

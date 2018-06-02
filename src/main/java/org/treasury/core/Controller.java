@@ -4,30 +4,32 @@ import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.wallet.Wallet;
-import org.treasury.core.pojo.TransactionHistory;
-import org.treasury.core.pojo.TransactionHistoryByDate;
-import org.treasury.core.pojo.Treasury;
+import org.treasury.core.exceptions.AmountExceedsLimitException;
+import org.treasury.core.exceptions.ClientError;
+import org.treasury.core.model.TransactionHistory;
+import org.treasury.core.model.TransactionHistoryByDate;
+import org.treasury.core.model.Treasury;
 
 import java.io.IOException;
 import java.util.*;
 
-public class Controls {
+public class Controller {
 
     private TreasuryClient client;
     private Wallet wallet;
     private long allowedDifference; // in milliseconds
 
-    Controls(String treasuryId, Wallet wallet, boolean testMode, long allowedDifference) {
+    Controller(String treasuryId, Wallet wallet, boolean testMode, long allowedDifference) {
         this.wallet = wallet;
         this.client = new TreasuryClient(testMode, treasuryId);
         this.allowedDifference = allowedDifference;
     }
 
-    Controls(String treasuryId, Wallet wallet, boolean testMode) {
+    Controller(String treasuryId, Wallet wallet, boolean testMode) {
         this(treasuryId, wallet, testMode, 86400000); // one day
     }
 
-    Controls(String treasuryId, Wallet wallet) {
+    Controller(String treasuryId, Wallet wallet) {
         this(treasuryId, wallet, true);
     }
 
